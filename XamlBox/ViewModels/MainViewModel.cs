@@ -1,11 +1,13 @@
-﻿using XamlBox.Implementations;
+﻿using Microsoft.Win32;
+using System.Windows;
+using XamlBox.Implementations;
 
 namespace XamlBox.ViewModels
 {
     /// <summary>
     /// ViewModel of the Main Window
     /// </summary>
-    public class MainViewModel
+    public class MainViewModel : BaseViewModel
     {
         #region Public Properties
 
@@ -33,7 +35,12 @@ namespace XamlBox.ViewModels
         /// </summary>
         public RelayCommand SelectDirectoryPathCommand => new RelayCommand(() =>
         {
+            var dialog = new OpenFolderDialog();
 
+            if (dialog.ShowDialog() == true)
+            {
+                DirectoryPath = dialog.FolderName;
+            }
         });
 
         /// <summary>
@@ -41,7 +48,12 @@ namespace XamlBox.ViewModels
         /// </summary>
         public RelayCommand SelectOutputPathCommand => new RelayCommand(() =>
         {
+            var dialog = new OpenFolderDialog();
 
+            if (dialog.ShowDialog() == true) 
+            {
+                OutputPath = dialog.FolderName;
+            }
         });
 
         /// <summary>
@@ -49,7 +61,17 @@ namespace XamlBox.ViewModels
         /// </summary>
         public RelayCommand ConvertCommand => new RelayCommand(() =>
         {
+            if (DirectoryPath == null || DirectoryPath.Length == 0)
+            {
+                MessageBox.Show("You must select a directory path for reading the XAML files.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
+            if (OutputPath == null || OutputPath.Length == 0)
+            {
+                MessageBox.Show("You must select a output path for saving the viewbox classes.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
         });
 
         #endregion
