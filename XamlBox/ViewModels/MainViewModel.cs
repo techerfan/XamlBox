@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Xaml;
+using XamlBox.Helper;
 using XamlBox.Implementations;
 
 namespace XamlBox.ViewModels
@@ -134,6 +135,10 @@ namespace XamlBox.ViewModels
                 var file = File.ReadAllText(filePath);
 
                 var v = (Viewbox)XamlServices.Parse(file);
+
+                ViewboxBuilder builder = new ViewboxBuilder(v, "Sample1");
+                builder.Build();
+
 
                 CheckChildren((v.Child as Canvas).Children, uniqueTags);
             }

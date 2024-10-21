@@ -1,5 +1,10 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Diagnostics.Metrics;
+using System.Globalization;
 using System.IO;
+using System.Security.Policy;
+using System.Text;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -7,25 +12,82 @@ using System.Windows.Shapes;
 namespace XamlBox.Helper
 {
     /// <summary>
+    /// To specify the distance
+    /// </summary>
+    enum CanvasDirection {  Left, Right, Top, Bottom }
+
+    internal class DistanceSpecs {
+        /// <summary>
+        /// Direction of the distance
+        /// </summary>
+        public CanvasDirection Direction { get; set; }
+
+        /// <summary>
+        /// Specifies how to reach the element
+        /// </summary>
+        public List<int> Tracking { get; set; } = new List<int>();
+
+        /// <summary>
+        /// Distance Value
+        /// </summary>
+        public double DistanceValue { get; set; }
+    }
+
+    /// <summary>
     /// For making viewbox classes string based on a xaml file
     /// </summary>
     public sealed class ViewboxBuilder
     {
-        #region Constants
-
-        /// <summary>
-        /// Base indentation
-        /// </summary>
-        private const string BaseIndent = "    ";
-
-        #endregion
-
         #region Private Members
 
         /// <summary>
-        /// Contains the class
+        /// The made class as a string
         /// </summary>
         private string _classString = "";
+
+        /// <summary>
+        /// Name of the class
+        /// </summary>
+        private string _className = "";
+
+        /// <summary>
+        /// Namespace
+        /// </summary>
+        private string _namespace = "";
+
+        /// <summary>
+        /// For tracking the indcies of the current tracked element
+        /// </summary>
+        private List<int> _trackingIndices = new List<int>();
+
+        /// <summary>
+        /// A list of distances to add to the canvas lastly 
+        /// </summary>
+        private List<DistanceSpecs> _distances = new List<DistanceSpecs>();
+
+        #endregion
+
+        #region Public Properties
+
+        /// <summary>
+        /// The made class as a string
+        /// </summary>
+        public string ClassString { get => _classString; }
+
+        /// <summary>
+        /// Name of class
+        /// </summary>
+        public string ClassName { get => _className; }
+
+        /// <summary>
+        /// Namespace
+        /// </summary>
+        public string Namespace { get => _namespace; }
+
+        /// <summary>
+        /// Viewbox that class must be made of
+        /// </summary>
+        public Viewbox Vb { get; private set; } 
 
         #endregion
 
@@ -34,20 +96,35 @@ namespace XamlBox.Helper
         /// <summary>
         /// Default Constructor
         /// </summary>
-        public ViewboxBuilder(Viewbox vb)
+        public ViewboxBuilder(Viewbox vb, string className, string nameSpace = "XamlBox")
         {
-
+            _className = className;
+            _namespace = nameSpace;
+            Vb = vb;
         }
 
         #endregion
 
         #region Public Methods
 
+        public void Build()
+        {
+            StringBuilder builder = new StringBuilder();
+            using (StringWriter writer = new StringWriter(builder))
+            {
+                MakeHeader(writer, _className, _namespace);
+                MakeConstructor(writer, Vb, _className);
+                MakeFooter(writer);
+            }
+
+            _classString = builder.ToString();
+        }
+
         #endregion
 
         #region Private Methods
 
-        private void MakeHeader(StreamWriter writer, string className, string nameSpace = "XamlBox")
+        private void MakeHeader(StringWriter writer, string className, string nameSpace)
         {
             writer.WriteLine($"using System.Windows.Controls;");
             writer.WriteLine($"using System.Windows.Shapes;");
@@ -59,7 +136,7 @@ namespace XamlBox.Helper
             writer.WriteLine($"    {{");
         }
 
-        private void MakeConstructor(StreamWriter writer, Viewbox vb, string className)
+        private void MakeConstructor(StringWriter writer, Viewbox vb, string className)
         {
             // Path --> Data, Height, Canvas.Left, Stretch, Stroke, StrokeThickness, Canvas.Top, Width, Fill
             // Polyline --> Points, Stroke, StrokeThickness, Fill
@@ -69,17 +146,16 @@ namespace XamlBox.Helper
             string baseIndent = MakeIndent(2);
             writer.WriteLine($"{baseIndent}public {className}()");
             writer.WriteLine($"{baseIndent}{{");
-            writer.WriteLine($"{baseIndent}    Height = {vb.Height.ToString(CultureInfo.InvariantCulture)},");
-            writer.WriteLine($"{baseIndent}    Width = {vb.Width.ToString(CultureInfo.InvariantCulture)},");
+            writer.WriteLine($"{baseIndent}    Height = {vb.Height.ToString(CultureInfo.InvariantCulture)};");
+            writer.WriteLine($"{baseIndent}    Width = {vb.Width.ToString(CultureInfo.InvariantCulture)};");
             writer.WriteLine($"{baseIndent}    Child = new Canvas");
             writer.WriteLine($"{baseIndent}    {{");
-
-
-            // TODO: close the child
-            // TODO: close the view 
+            MakeCanvas(writer, 4, vb.Child as Canvas);
+            writer.WriteLine($"{baseIndent}    }};");
+            writer.WriteLine($"{baseIndent}}}");
         }
 
-        private void MakeCanvas(StreamWriter writer, int indentLevel, Canvas canvas)
+        private void MakeCanvas(StringWriter writer, int indentLevel, Canvas canvas)
         {
             string baseIndent = MakeIndent(indentLevel);
 
@@ -88,50 +164,68 @@ namespace XamlBox.Helper
 
             if (canvas.Children.Count > 0)
             {
-                writer.WriteLine($"{baseIndent}    Children =");
-                writer.WriteLine($"{baseIndent}    {{");
-
+                writer.WriteLine($"{baseIndent}Children =");
+                writer.WriteLine($"{baseIndent}{{");
+                int counter = 0;
                 foreach (var child in canvas.Children)
                 {
+                    _trackingIndices.Add(counter);
+                    if (!double.IsNaN(Canvas.GetLeft(child as UIElement)))
+                        _distances.Add(new DistanceSpecs { Direction = CanvasDirection.Left, Tracking = _trackingIndices.ToList(), DistanceValue = Canvas.GetLeft(child as UIElement) });
+
+                    if (!double.IsNaN(Canvas.GetRight(child as UIElement)))
+                        _distances.Add(new DistanceSpecs { Direction = CanvasDirection.Right, Tracking = _trackingIndices.ToList(), DistanceValue = Canvas.GetRight(child as UIElement) });
+
+                    if (!double.IsNaN(Canvas.GetTop(child as UIElement)))
+                        _distances.Add(new DistanceSpecs { Direction = CanvasDirection.Top, Tracking = _trackingIndices.ToList(), DistanceValue = Canvas.GetTop(child as UIElement) });
+
+                    if (!double.IsNaN(Canvas.GetBottom(child as UIElement)))
+                        _distances.Add(new DistanceSpecs { Direction = CanvasDirection.Bottom, Tracking = _trackingIndices.ToList(), DistanceValue = Canvas.GetBottom(child as UIElement) });
+
+
                     if (child is System.Windows.Shapes.Path path)
                     {
-                        MakePath(writer, indentLevel + 2, path);
+                        MakePath(writer, indentLevel + 1, path);
                     }
                     else if (child is Polygon polygon)
                     {
-                        MakePolygon(writer, indentLevel + 2, polygon);
+                        MakePolygon(writer, indentLevel + 1, polygon);
                     }
                     else if (child is Polyline polyline)
                     {
-                        MakepPolyline(writer, indentLevel + 2, polyline);
+                        MakepPolyline(writer, indentLevel + 1, polyline);
                     }
                     else if (child is Ellipse ellipse)
                     {
-                        MakeEllipse(writer, indentLevel + 2, ellipse);
+                        MakeEllipse(writer, indentLevel + 1, ellipse);
                     }
                     else if (child is Rectangle rectangle)
                     {
-                        MakeRectangle(writer, indentLevel + 2, rectangle);
+                        MakeRectangle(writer, indentLevel + 1, rectangle);
                     }
                     else if (child is Canvas canv)
                     {
-                        writer.WriteLine($"{baseIndent}new Canvas");
-                        writer.WriteLine($"{baseIndent}{{");
-                        MakeCanvas(writer, indentLevel + 3, canv);
+                        writer.WriteLine($"{baseIndent}    new Canvas");
+                        writer.WriteLine($"{baseIndent}    {{");
+                        MakeCanvas(writer, indentLevel + 2, canv);
+                        writer.WriteLine($"{baseIndent}    }},");
                     }
                     else
                     {
                         throw new NotImplementedException(child.GetType().ToString());
                     }
+                    _trackingIndices.RemoveAt(_trackingIndices.Count-1);
+                    counter++;
                 }
+                writer.WriteLine($"{baseIndent}}}");
             }
-
-            writer.WriteLine($"{baseIndent}}},");
         }
 
-        private void MakePath(StreamWriter writer, int indentLevel, System.Windows.Shapes.Path path)
+        private void MakePath(StringWriter writer, int indentLevel, System.Windows.Shapes.Path path)
         {
             string baseIndent = MakeIndent(indentLevel);
+
+
 
             writer.WriteLine($"{baseIndent}new Path");
             writer.WriteLine($"{baseIndent}{{");
@@ -148,39 +242,159 @@ namespace XamlBox.Helper
             if (path.Width != double.NaN)
                 writer.WriteLine($"{baseIndent}    Width = {path.Width.ToString(CultureInfo.InvariantCulture)},");
 
+            if (path.Fill != null)
+                writer.WriteLine($"{baseIndent}    Fill = {ConvertBrush(path.Fill)}");
 
-            // TODO: Fill
-            // TODO: Stroke
+            if (path.Stroke != null)
+                writer.WriteLine($"{baseIndent}    Stroke = {ConvertBrush(path.Stroke)}");
 
-            writer.WriteLine($"{baseIndent}    Stretch = System.Windows.Media.Stretch.{path.Stretch.ToString()}");
+            writer.WriteLine($"{baseIndent}    Stretch = System.Windows.Media.Stretch.{path.Stretch.ToString()},");
 
+            writer.WriteLine($"{baseIndent}}},");
         }
 
-        private void MakePolygon(StreamWriter writer, int indentLevel, Polygon polygon)
+        private void MakePolygon(StringWriter writer, int indentLevel, Polygon polygon)
         {
             string baseIndent = MakeIndent(indentLevel);
 
+            writer.WriteLine($"{baseIndent}new Polygon");
+            writer.WriteLine($"{baseIndent}{{");
 
+            if (polygon.Points.Count > 0)
+            {
+                writer.Write($"{baseIndent}    Points = ");
+                var pointsText = "new PointCollection { ";
+                foreach (var point in polygon.Points) 
+                {
+                    new Polygon { Points = new PointCollection { new System.Windows.Point(1, 2), new System.Windows.Point(1, 2), } };
+                    pointsText += $"new System.Windows.Point({point.X.ToString(CultureInfo.InvariantCulture)}, {point.Y.ToString(CultureInfo.InvariantCulture)}),";
+                }
+
+                pointsText += " },";
+
+                writer.WriteLine(pointsText);
+            }
+
+            if (polygon.StrokeThickness != double.NaN)
+                writer.WriteLine($"{baseIndent}    StrokeThickness = {polygon.StrokeThickness.ToString(CultureInfo.InvariantCulture)},");
+
+            if (polygon.Height != double.NaN)
+                writer.WriteLine($"{baseIndent}    Height = {polygon.Height.ToString(CultureInfo.InvariantCulture)},");
+
+            if (polygon.Width != double.NaN)
+                writer.WriteLine($"{baseIndent}    Width = {polygon.Width.ToString(CultureInfo.InvariantCulture)},");
+
+            if (polygon.Fill != null)
+                writer.WriteLine($"{baseIndent}    Fill = {ConvertBrush(polygon.Fill)}");
+
+            if (polygon.Stroke != null)
+                writer.WriteLine($"{baseIndent}    Stroke = {ConvertBrush(polygon.Stroke)}");
+
+            writer.WriteLine($"{baseIndent}    Stretch = System.Windows.Media.Stretch.{polygon.Stretch.ToString()},");
+
+            writer.WriteLine($"{baseIndent}}},");
         }
 
-        private void MakepPolyline(StreamWriter writer, int indentLevel, Polyline polyline)
+        private void MakepPolyline(StringWriter writer, int indentLevel, Polyline polyline)
         {
             string baseIndent = MakeIndent(indentLevel);
+
+            writer.WriteLine($"{baseIndent}new Polyline");
+            writer.WriteLine($"{baseIndent}{{");
+
+            if (polyline.Points.Count > 0)
+            {
+                writer.Write($"{baseIndent}    Points = ");
+                var pointsText = "new PointCollection { ";
+                foreach (var point in polyline.Points)
+                {
+                    new Polygon { Points = new PointCollection { new System.Windows.Point(1, 2), new System.Windows.Point(1, 2), } };
+                    pointsText += $"new System.Windows.Point({point.X.ToString(CultureInfo.InvariantCulture)}, {point.Y.ToString(CultureInfo.InvariantCulture)}),";
+                }
+
+                pointsText += " },";
+
+                writer.WriteLine(pointsText);
+            }
+
+            if (polyline.StrokeThickness != double.NaN)
+                writer.WriteLine($"{baseIndent}    StrokeThickness = {polyline.StrokeThickness.ToString(CultureInfo.InvariantCulture)},");
+             
+            if (polyline.Height != double.NaN)
+                writer.WriteLine($"{baseIndent}    Height = {polyline.Height.ToString(CultureInfo.InvariantCulture)},");
+
+            if (polyline.Width != double.NaN)
+                writer.WriteLine($"{baseIndent}    Width = {polyline.Width.ToString(CultureInfo.InvariantCulture)},");
+
+            if (polyline.Fill != null)
+                writer.WriteLine($"{baseIndent}    Fill = {ConvertBrush(polyline.Fill)}");
+
+            if (polyline.Stroke != null)
+                writer.WriteLine($"{baseIndent}    Stroke = {ConvertBrush(polyline.Stroke)}");
+
+            writer.WriteLine($"{baseIndent}    Stretch = System.Windows.Media.Stretch.{polyline.Stretch.ToString()},");
+
+            writer.WriteLine($"{baseIndent}}},");
         }
 
-        private void MakeEllipse(StreamWriter writer, int indentLevel, Ellipse ellipse)
+        private void MakeEllipse(StringWriter writer, int indentLevel, Ellipse ellipse)
         {
             string baseIndent = MakeIndent(indentLevel);
+
+            writer.WriteLine($"{baseIndent}new Ellipse");
+            writer.WriteLine($"{baseIndent}{{");
+
+            if (ellipse.StrokeThickness != double.NaN)
+                writer.WriteLine($"{baseIndent}    StrokeThickness = {ellipse.StrokeThickness.ToString(CultureInfo.InvariantCulture)},");
+
+            if (ellipse.Height != double.NaN)
+                writer.WriteLine($"{baseIndent}    Height = {ellipse.Height.ToString(CultureInfo.InvariantCulture)},");
+
+            if (ellipse.Width != double.NaN)
+                writer.WriteLine($"{baseIndent}    Width = {ellipse.Width.ToString(CultureInfo.InvariantCulture)},");
+
+            if (ellipse.Fill != null)
+                writer.WriteLine($"{baseIndent}    Fill = {ConvertBrush(ellipse.Fill)}");
+
+            if (ellipse.Stroke != null)
+                writer.WriteLine($"{baseIndent}    Stroke = {ConvertBrush(ellipse.Stroke)}");
+
+            writer.WriteLine($"{baseIndent}    Stretch = System.Windows.Media.Stretch.{ellipse.Stretch.ToString()},");
+
+            writer.WriteLine($"{baseIndent}}},");
         }
 
-        private void MakeRectangle(StreamWriter writer, int indentLevel, Rectangle rectangle)
+        private void MakeRectangle(StringWriter writer, int indentLevel, Rectangle rectangle)
         {
             string baseIndent = MakeIndent(indentLevel);
+
+            writer.WriteLine($"{baseIndent}new Rectangle");
+            writer.WriteLine($"{baseIndent}{{");
+
+            if (rectangle.StrokeThickness != double.NaN)
+                writer.WriteLine($"{baseIndent}    StrokeThickness = {rectangle.StrokeThickness.ToString(CultureInfo.InvariantCulture)},");
+
+            if (rectangle.Height != double.NaN)
+                writer.WriteLine($"{baseIndent}    Height = {rectangle.Height.ToString(CultureInfo.InvariantCulture)},");
+
+            if (rectangle.Width != double.NaN)
+                writer.WriteLine($"{baseIndent}    Width = {rectangle.Width.ToString(CultureInfo.InvariantCulture)},");
+
+            if (rectangle.Fill != null)
+                writer.WriteLine($"{baseIndent}    Fill = {ConvertBrush(rectangle.Fill)}");
+
+            if (rectangle.Stroke != null)
+                writer.WriteLine($"{baseIndent}    Stroke = {ConvertBrush(rectangle.Stroke)}");
+
+            writer.WriteLine($"{baseIndent}    Stretch = System.Windows.Media.Stretch.{rectangle.Stretch.ToString()},");
+
+            writer.WriteLine($"{baseIndent}}},");
         }
 
-        private void MakeFooter(StreamWriter writer)
+        private void MakeFooter(StringWriter writer)
         {
-
+            writer.WriteLine("    }");
+            writer.WriteLine("}");
         }
 
         private string MakeIndent(int level)
@@ -192,7 +406,7 @@ namespace XamlBox.Helper
         {
             if (brush is SolidColorBrush scb)
             {
-                return $"new SolidColorBrush(Colors.{scb.Color}),";
+                return $"new SolidColorBrush((Color)ColorConverter.ConvertFromString(\"{scb.Color}\")),";
             }
             else if (brush is LinearGradientBrush lgb)
             {
@@ -219,7 +433,7 @@ namespace XamlBox.Helper
                 text += "new GradientStopCollection(new List<GradientStop> {";
                 foreach (var color in lgb.GradientStops)
                 {
-                    text += $"new GradientStop(Colors.{color.Color}, {color.Offset.ToString(CultureInfo.InvariantCulture)}),";
+                    text += $"new GradientStop((Color)ColorConverter.ConvertFromString(\"{color.Color}\"), {color.Offset.ToString(CultureInfo.InvariantCulture)}),";
                 }
                 text += "}),";
             }
@@ -244,7 +458,7 @@ namespace XamlBox.Helper
                 text += "new GradientStopCollection(new List<GradientStop> {";
                 foreach (var color in rgb.GradientStops)
                 {
-                    text += $"new GradientStop(Colors.{color.Color}, {color.Offset.ToString(CultureInfo.InvariantCulture)}),";
+                    text += $"new GradientStop((Color)ColorConverter.ConvertFromString(\"{color.Color}\"), {color.Offset.ToString(CultureInfo.InvariantCulture)}),";
                 }
                 text += "})";
             }
