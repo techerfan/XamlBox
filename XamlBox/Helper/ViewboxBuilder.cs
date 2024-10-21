@@ -25,7 +25,7 @@ namespace XamlBox.Helper
         /// <summary>
         /// Specifies how to reach the element
         /// </summary>
-        public List<int> Tracking { get; set; } = new List<int>();
+        public List<int> TrackingList { get; set; } = new List<int>();
 
         /// <summary>
         /// Distance Value
@@ -152,6 +152,12 @@ namespace XamlBox.Helper
             writer.WriteLine($"{baseIndent}    {{");
             MakeCanvas(writer, 4, vb.Child as Canvas);
             writer.WriteLine($"{baseIndent}    }};");
+
+            foreach (var disSpec in _distances)
+            {
+                var text = GenerateCanvasSetDirection(disSpec);
+                writer.WriteLine($"{baseIndent}    {text};");
+            }
             writer.WriteLine($"{baseIndent}}}");
         }
 
@@ -171,16 +177,16 @@ namespace XamlBox.Helper
                 {
                     _trackingIndices.Add(counter);
                     if (!double.IsNaN(Canvas.GetLeft(child as UIElement)))
-                        _distances.Add(new DistanceSpecs { Direction = CanvasDirection.Left, Tracking = _trackingIndices.ToList(), DistanceValue = Canvas.GetLeft(child as UIElement) });
+                        _distances.Add(new DistanceSpecs { Direction = CanvasDirection.Left, TrackingList = _trackingIndices.ToList(), DistanceValue = Canvas.GetLeft(child as UIElement) });
 
                     if (!double.IsNaN(Canvas.GetRight(child as UIElement)))
-                        _distances.Add(new DistanceSpecs { Direction = CanvasDirection.Right, Tracking = _trackingIndices.ToList(), DistanceValue = Canvas.GetRight(child as UIElement) });
+                        _distances.Add(new DistanceSpecs { Direction = CanvasDirection.Right, TrackingList = _trackingIndices.ToList(), DistanceValue = Canvas.GetRight(child as UIElement) });
 
                     if (!double.IsNaN(Canvas.GetTop(child as UIElement)))
-                        _distances.Add(new DistanceSpecs { Direction = CanvasDirection.Top, Tracking = _trackingIndices.ToList(), DistanceValue = Canvas.GetTop(child as UIElement) });
+                        _distances.Add(new DistanceSpecs { Direction = CanvasDirection.Top, TrackingList = _trackingIndices.ToList(), DistanceValue = Canvas.GetTop(child as UIElement) });
 
                     if (!double.IsNaN(Canvas.GetBottom(child as UIElement)))
-                        _distances.Add(new DistanceSpecs { Direction = CanvasDirection.Bottom, Tracking = _trackingIndices.ToList(), DistanceValue = Canvas.GetBottom(child as UIElement) });
+                        _distances.Add(new DistanceSpecs { Direction = CanvasDirection.Bottom, TrackingList = _trackingIndices.ToList(), DistanceValue = Canvas.GetBottom(child as UIElement) });
 
 
                     if (child is System.Windows.Shapes.Path path)
@@ -466,6 +472,47 @@ namespace XamlBox.Helper
             text += "),";
 
             return text;
+        }
+
+        private string GenerateCanvasSetDirection(DistanceSpecs specs)
+        {
+            if (specs.TrackingList.Count <= 0)
+                throw new Exception("Tracking List cannot be empty. This indicates a bug in the detector code section.");
+
+            string text = "Canvas.Set";
+            switch (specs.Direction)
+            {
+                case CanvasDirection.Left:
+                    text += "Left(";
+                    break;
+                case CanvasDirection.Right:
+                    text += "Right(";
+                    break;
+                case CanvasDirection.Top:
+                    text += "Top(";
+                    break;
+                case CanvasDirection.Bottom:
+                    text += "Bottom(";
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+
+            string element = $"((Canvas)Child).Children[{specs.TrackingList[0]}]";
+
+            // (Canvas)((Canvas)((Canvas)Child.Children[2]).Children[3])).Children[1]
+
+            for (int i = 1; i < specs.TrackingList.Count - 2; i++)
+            {
+                element = $"((Canvas)({element})).Children[{specs.TrackingList[i]}]";
+            }
+
+            if (specs.TrackingList.Count > 1)
+            {
+                element = $"((Canvas)({element})).Children[{specs.TrackingList[specs.TrackingList.Count - 1]}]";
+            }
+
+            return $"{text}{element}, {specs.DistanceValue})";
         }
 
         #endregion

@@ -21,6 +21,8 @@ namespace XamlBox
         {
             DataContext = new MainViewModel();
             InitializeComponent();
+
+            MainLayout.Children.Add(new Sample1());
         }
     }
 }
