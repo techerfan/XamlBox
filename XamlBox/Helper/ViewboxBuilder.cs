@@ -167,6 +167,9 @@ namespace XamlBox.Helper
 
             writer.WriteLine($"{baseIndent}Height = {canvas.Height.ToString(CultureInfo.InvariantCulture)},");
             writer.WriteLine($"{baseIndent}Width = {canvas.Height.ToString(CultureInfo.InvariantCulture)},");
+            writer.WriteLine($"{baseIndent}UseLayoutRounding = {canvas.UseLayoutRounding.ToString().ToLower()},");
+            writer.WriteLine($"{baseIndent}VerticalAlignment = System.Windows.VerticalAlignment.{canvas.VerticalAlignment},");
+            writer.WriteLine($"{baseIndent}HorizontalAlignment = System.Windows.HorizontalAlignment.{canvas.HorizontalAlignment},");
 
             if (canvas.Children.Count > 0)
             {
