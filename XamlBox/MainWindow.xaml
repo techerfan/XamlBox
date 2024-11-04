@@ -52,14 +52,21 @@
         <TextBlock Text="Namespace:"
                    Margin="5"/>
         <TextBox Margin="5 0"
-                 Text="{Binding Namespace}" />
+                 Text="{Binding Namespace, Mode=TwoWay }" />
+
+        <!-- Progress Bar -->
+        <ProgressBar Margin="5 16 5 0"
+                     Maximum="{Binding ProgressMax}"
+                     Value="{Binding ProgressVal}"
+                     Visibility="{Binding IsProcessing, Converter={local:BooleanToVisibilityConverter}, ConverterParameter=True}"
+                     Height="20"/>
 
         <!-- Convert Button -->
         <Button Content="Convert"
                 Padding="3"
+                IsEnabled="{Binding IsProcessing, Converter={local:InverseBooleanConverter}}"
                 Command="{Binding ConvertCommand}"
                 Margin="5 15 5 0" />
 
-        <Frame x:Name="MyFrame" />
     </StackPanel>
 </Window>

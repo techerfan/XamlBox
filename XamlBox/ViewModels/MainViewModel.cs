@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Xaml;
@@ -29,6 +30,21 @@ namespace XamlBox.ViewModels
         /// Namespace of the viewbox classes
         /// </summary>
         public string Namespace { get; set; }
+
+        /// <summary>
+        /// Progress bar maximum value
+        /// </summary>
+        public int ProgressMax { get; set; }
+
+        /// <summary>
+        /// Progress bar current value
+        /// </summary>
+        public int ProgressVal { get; set; }
+
+        /// <summary>
+        /// Specifies if the app is currently processing
+        /// </summary>
+        public bool IsProcessing { get; set; }
 
         #endregion
 
@@ -79,18 +95,20 @@ namespace XamlBox.ViewModels
 
             if (Namespace == null || Namespace.Length == 0)
             {
-                var result = MessageBox.Show("Selecting a namespace is optional. You can leave it blank if you do not need a custom namespace.", "Warning", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
-                if (result == MessageBoxResult.Cancel)
-                {
-                    return;
-                }
+                var result = MessageBox.Show("You must pick a namespace. It cannot be empty.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
             }
 
-            List<string> tags = new List<string>();
-            CheckDirectory(DirectoryPath, tags);
-
-
-            MessageBox.Show($"{String.Join("\n", tags.ToArray())}");
+            // Getting the count of files and setting it to the progress bar maximum value
+            ProgressMax = Directory.GetFiles(DirectoryPath, "*", SearchOption.AllDirectories).Length;
+            // Also progress bar current value must be set to zero since we just started the process
+            ProgressVal = 0;
+            IsProcessing = true;
+            Task.Run(() =>
+            {
+                CheckDirectory(DirectoryPath);
+                IsProcessing = false;
+            });
         });
 
         #endregion
@@ -104,60 +122,75 @@ namespace XamlBox.ViewModels
         {
             DirectoryPath = "";
             OutputPath = "";
-            Namespace = "";
+            Namespace = "XamlBox";
         }
 
         #endregion
 
         #region Private Helpers
 
-        private void CheckDirectory(string path, List<string> uniqueTags)
+        private void CheckDirectory(string path)
         {
             var filePaths = Directory.GetFiles(path);
 
-            CheckXamlFiles(filePaths, uniqueTags);
+            CheckXamlFiles(filePaths);
 
             var directories = Directory.GetDirectories(path);
             foreach (var directory in directories)
             {
-                CheckDirectory(directory, uniqueTags);
+                // Creating the directory in the output path if it does not exist
+                var newDirname = directory.Replace(DirectoryPath, OutputPath);
+                Directory.CreateDirectory(newDirname);
+                CheckDirectory(directory);
             }
         }
 
-        private void CheckXamlFiles(string[] filePaths, List<string> uniqueTags)
+        private void CheckXamlFiles(string[] filePaths)
         {
             foreach (var filePath in filePaths)
             {
+                ProgressVal++;
                 if (Path.GetExtension(filePath) != ".xaml")
                 {
                     continue;
                 }
                 var file = File.ReadAllText(filePath);
 
-                var v = (Viewbox)XamlServices.Parse(file);
+                Application.Current.Dispatcher.Invoke(() => {
+                    var v = (Viewbox)XamlServices.Parse(file);
 
-                ViewboxBuilder builder = new ViewboxBuilder(v, "Sample1");
-                builder.Build();
+                    // New file name must be a valid class name - the MakeValidClassName function makes it valid
+                    var newFileName = MakeValidClassName(Path.GetFileNameWithoutExtension(filePath));
 
+                    ViewboxBuilder builder = new ViewboxBuilder(v, newFileName, Namespace);
+                    builder.Build();
 
-                CheckChildren((v.Child as Canvas).Children, uniqueTags);
+                    // Source directory must be substituted with the output directory
+                    var newFilePath = filePath.Replace(DirectoryPath, OutputPath);
+                    newFilePath = newFilePath.Replace(Path.GetFileName(newFilePath), "");
+
+                    using (var f = File.CreateText(Path.Combine(newFilePath, newFileName + ".cs")))
+                    {
+                        f.Write(builder.ClassString);
+                    }
+                });
+
+                
             }
         }
 
-        private void CheckChildren(UIElementCollection colls, List<string> uniqueTags)
+        private string MakeValidClassName(string name)
         {
-            foreach (var child in colls)
-            {
-                if (child is Canvas c)
-                {
-                    CheckChildren(c.Children, uniqueTags);
-                }
+            // Use Regex to remove invalid characters
+            string validName = Regex.Replace(name, @"[^a-zA-Z0-9_]", "");
 
-                if (!uniqueTags.Contains(child.GetType().ToString()))
-                {
-                    uniqueTags.Add(child.GetType().ToString());
-                }
+            // Ensure the name starts with a letter or underscore
+            if (string.IsNullOrEmpty(validName) || !char.IsLetter(validName[0]) && validName[0] != '_')
+            {
+                validName = "_" + validName;
             }
+
+            return validName;
         }
 
         #endregion

@@ -14,12 +14,18 @@ namespace XamlBox
             {
                 Height = 56.873,
                 Width = 56.873,
+                UseLayoutRounding = false,
+                VerticalAlignment = System.Windows.VerticalAlignment.Top,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
                 Children =
                 {
                     new Canvas
                     {
                         Height = 1.351,
                         Width = 1.351,
+                        UseLayoutRounding = false,
+                        VerticalAlignment = System.Windows.VerticalAlignment.Stretch,
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
                         Children =
                         {
                             new Path
@@ -46,6 +52,9 @@ namespace XamlBox
                     {
                         Height = 54.956,
                         Width = 54.956,
+                        UseLayoutRounding = false,
+                        VerticalAlignment = System.Windows.VerticalAlignment.Stretch,
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
                         Children =
                         {
                             new Path
@@ -72,6 +81,9 @@ namespace XamlBox
                     {
                         Height = 55.519,
                         Width = 55.519,
+                        UseLayoutRounding = false,
+                        VerticalAlignment = System.Windows.VerticalAlignment.Stretch,
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
                         Children =
                         {
                             new Path
@@ -134,6 +146,9 @@ namespace XamlBox
                     {
                         Height = 50,
                         Width = 50,
+                        UseLayoutRounding = false,
+                        VerticalAlignment = System.Windows.VerticalAlignment.Stretch,
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
                         Children =
                         {
                             new Path
@@ -162,6 +177,9 @@ namespace XamlBox
                     {
                         Height = 19.256,
                         Width = 19.256,
+                        UseLayoutRounding = false,
+                        VerticalAlignment = System.Windows.VerticalAlignment.Stretch,
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
                         Children =
                         {
                             new Path
@@ -279,6 +297,9 @@ namespace XamlBox
                     {
                         Height = 4.391,
                         Width = 4.391,
+                        UseLayoutRounding = false,
+                        VerticalAlignment = System.Windows.VerticalAlignment.Stretch,
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
                         Children =
                         {
                             new Path
@@ -297,6 +318,9 @@ namespace XamlBox
                     {
                         Height = 32.545,
                         Width = 32.545,
+                        UseLayoutRounding = false,
+                        VerticalAlignment = System.Windows.VerticalAlignment.Stretch,
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
                         Children =
                         {
                             new Path
@@ -323,6 +347,9 @@ namespace XamlBox
                     {
                         Height = 13.738,
                         Width = 13.738,
+                        UseLayoutRounding = false,
+                        VerticalAlignment = System.Windows.VerticalAlignment.Stretch,
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
                         Children =
                         {
                             new Path
@@ -340,6 +367,9 @@ namespace XamlBox
                     {
                         Height = 30.63,
                         Width = 30.63,
+                        UseLayoutRounding = false,
+                        VerticalAlignment = System.Windows.VerticalAlignment.Stretch,
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
                         Children =
                         {
                             new Path
@@ -368,6 +398,9 @@ namespace XamlBox
                     {
                         Height = 17.453,
                         Width = 17.453,
+                        UseLayoutRounding = false,
+                        VerticalAlignment = System.Windows.VerticalAlignment.Stretch,
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
                         Children =
                         {
                             new Path
