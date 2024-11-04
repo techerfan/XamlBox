@@ -5,6 +5,7 @@ XamlBox is a .NET based app for converting XAML icons to viewbox classes.
 ## Installation
 
 The easiest way to build the application is through Visual Studio. Open the project and simply make a build for release.
+Also, you can download the built version using this [link](https://github.com/techerfan/XamlBox/releases/download/v1.0.0/net8.0-windows7.0.zip) but you might face some compatibility issues.
 
 ## Usage
 
