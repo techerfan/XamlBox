@@ -12,7 +12,7 @@
                 Name="MainLayout">
         
         <!-- Directory path -->
-        <TextBlock Text="Directory Path:"
+        <TextBlock Text="Source Path:"
                    Margin="5"/>
         <Grid Margin="5 0">
             <Grid.ColumnDefinitions>
