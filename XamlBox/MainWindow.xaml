@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:XamlBox"
         mc:Ignorable="d"
         SizeToContent="Height"
+        ResizeMode="NoResize"
         Title="XamlBox" Width="400">
     <StackPanel Margin="10"
                 Name="MainLayout">
@@ -59,7 +60,14 @@
                      Maximum="{Binding ProgressMax}"
                      Value="{Binding ProgressVal}"
                      Visibility="{Binding IsProcessing, Converter={local:BooleanToVisibilityConverter}, ConverterParameter=True}"
-                     Height="20"/>
+                     Height="20">
+            <ProgressBar.Foreground>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                    <GradientStop Color="Black" Offset="0.0" />
+                    <GradientStop Color="Black"  Offset="1.0" />
+                </LinearGradientBrush>
+            </ProgressBar.Foreground>
+        </ProgressBar>
 
         <!-- Convert Button -->
         <Button Content="Convert"
