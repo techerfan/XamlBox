@@ -202,7 +202,7 @@ namespace XamlBox.Helper
                     }
                     else if (child is Polyline polyline)
                     {
-                        MakepPolyline(writer, indentLevel + 1, polyline);
+                        MakePolyline(writer, indentLevel + 1, polyline);
                     }
                     else if (child is Ellipse ellipse)
                     {
@@ -233,8 +233,6 @@ namespace XamlBox.Helper
         private void MakePath(StringWriter writer, int indentLevel, System.Windows.Shapes.Path path)
         {
             string baseIndent = MakeIndent(indentLevel);
-
-
 
             writer.WriteLine($"{baseIndent}new Path");
             writer.WriteLine($"{baseIndent}{{");
@@ -275,7 +273,6 @@ namespace XamlBox.Helper
                 var pointsText = "new PointCollection { ";
                 foreach (var point in polygon.Points) 
                 {
-                    new Polygon { Points = new PointCollection { new System.Windows.Point(1, 2), new System.Windows.Point(1, 2), } };
                     pointsText += $"new System.Windows.Point({point.X.ToString(CultureInfo.InvariantCulture)}, {point.Y.ToString(CultureInfo.InvariantCulture)}),";
                 }
 
@@ -304,7 +301,7 @@ namespace XamlBox.Helper
             writer.WriteLine($"{baseIndent}}},");
         }
 
-        private void MakepPolyline(StringWriter writer, int indentLevel, Polyline polyline)
+        private void MakePolyline(StringWriter writer, int indentLevel, Polyline polyline)
         {
             string baseIndent = MakeIndent(indentLevel);
 
@@ -317,7 +314,6 @@ namespace XamlBox.Helper
                 var pointsText = "new PointCollection { ";
                 foreach (var point in polyline.Points)
                 {
-                    new Polygon { Points = new PointCollection { new System.Windows.Point(1, 2), new System.Windows.Point(1, 2), } };
                     pointsText += $"new System.Windows.Point({point.X.ToString(CultureInfo.InvariantCulture)}, {point.Y.ToString(CultureInfo.InvariantCulture)}),";
                 }
 
