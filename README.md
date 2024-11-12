@@ -13,6 +13,8 @@ First, you need to specify a path where all your XAML icons are. Then a path for
 
 In case that you want to use your own namespace, you can change it to whatever you want but keep in mind the namespace must be valid.
 
+![Alt A screenshot of the XamlBox app](./Pics/xamlbox-v1.0.0.png "XamlBox")
+
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first
